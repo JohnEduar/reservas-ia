@@ -14,9 +14,21 @@ class Settings(BaseSettings):
     # --- App ---
     APP_NAME: str = "GlampBook API"
     APP_VERSION: str = "1.0.0"
+    APP_DESCRIPTION: str = "API para gestión de reservas de glamping"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+
+    # --- CORS ---
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ALLOW_METHODS: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    CORS_ALLOW_HEADERS: list[str] = [
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ]
 
     # --- Database ---
     DB_HOST: str = "localhost"
