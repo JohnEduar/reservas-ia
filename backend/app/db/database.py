@@ -12,6 +12,13 @@ engine = create_engine(
 )
 
 
+
+with engine.connect() as connection:
+    result = connection.execute(text("SELECT 1"))
+    print("Database connection successful!")
+
+
+
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
