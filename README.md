@@ -202,10 +202,11 @@ reviews            → calificaciones y comentarios por reserva
 ### Fase 1 — Fundación `[En progreso]`
 - [x] Diseño de arquitectura del sistema
 - [x] Definición de entidades y módulos
-- [ ] Setup de proyecto (backend + frontend)
+- [x] Setup inicial del backend con FastAPI
+- [ ] Setup del frontend con React + Vite
 - [ ] Configuración de Docker y MySQL
-- [ ] Migraciones iniciales con Alembic
-- [ ] Sistema de autenticación con JWT
+- [x] Migraciones iniciales con Alembic
+- [x] Sistema de autenticación con JWT
 
 ### Fase 2 — Core de Reservas
 - [ ] CRUD de alojamientos
@@ -420,9 +421,9 @@ Claude Code actúa como **par de programación sénior**, no como reemplazo del 
 ## Autor
 
 **Samuel Zapata**
-Ingeniería de Software — Semestre 6
 [lazarosamuelza45@gmail.com](mailto:lazarosamuelza45@gmail.com)
-
+**John Eduar Pérez**
+[johneduar777@gmail.com](mailto:johneduar777@gmail.com)
 
 
 ---
