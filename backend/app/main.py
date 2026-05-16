@@ -1,14 +1,19 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.db.database import engine
 from app.schemas.health import HealthResponse
+
+# Ensure upload directory exists before StaticFiles mount
+Path("uploads/accommodations").mkdir(parents=True, exist_ok=True)
 
 _OPENAPI_TAGS = [
     {
@@ -57,6 +62,7 @@ app.add_middleware(
     max_age=600,
 )
 
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 
