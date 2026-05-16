@@ -1,4 +1,6 @@
 alembic==1.14.1
+email-validator==2.3.0
+python-multipart==0.0.28
 bcrypt==5.0.0
 fastapi==0.115.5
 python-jose[cryptography]==3.3.0
