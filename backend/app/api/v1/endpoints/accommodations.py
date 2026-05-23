@@ -1,20 +1,18 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_active_user, get_current_superuser
+from app.core.deps import get_current_active_user
 from app.db.deps import get_db
 from app.models.user import User
-from app.schemas.accommodation import AccommodationCreate, AccommodationResponse, AccommodationUpdate, AccommodationImageResponse
-from app.services.accommodation import (
-    AccommodationForbiddenError,
-    AccommodationNotFoundError,
-    AccommodationService,
-    AmenityNotFoundError,
-    ImageNotFoundError,
-    InvalidImageError,
+from app.schemas.accommodation import (
+    AccommodationCreate,
+    AccommodationImageResponse,
+    AccommodationResponse,
+    AccommodationUpdate,
 )
+from app.services.accommodation import AccommodationService
 
 router = APIRouter()
 
@@ -57,10 +55,7 @@ def get_accommodation(
     accommodation_id: int,
     db: Session = Depends(get_db),
 ) -> AccommodationResponse:
-    try:
-        return AccommodationService(db).get_by_id(accommodation_id)
-    except AccommodationNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accommodation not found")
+    return AccommodationService(db).get_by_id(accommodation_id)
 
 
 # ── Authenticated endpoints ──────────────────────────────────────────────────
@@ -77,13 +72,7 @@ def create_accommodation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> AccommodationResponse:
-    try:
-        return AccommodationService(db).create(owner_id=current_user.id, data=data)
-    except AmenityNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Amenity {e.amenity_id} not found",
-        )
+    return AccommodationService(db).create(owner_id=current_user.id, data=data)
 
 
 @router.put(
@@ -98,22 +87,12 @@ def update_accommodation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> AccommodationResponse:
-    try:
-        return AccommodationService(db).update(
-            accommodation_id=accommodation_id,
-            requester_id=current_user.id,
-            is_superuser=current_user.is_superuser,
-            data=data,
-        )
-    except AccommodationNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accommodation not found")
-    except AccommodationForbiddenError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-    except AmenityNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Amenity {e.amenity_id} not found",
-        )
+    return AccommodationService(db).update(
+        accommodation_id=accommodation_id,
+        requester_id=current_user.id,
+        is_superuser=current_user.is_superuser,
+        data=data,
+    )
 
 
 @router.delete(
@@ -127,16 +106,11 @@ def delete_accommodation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> AccommodationResponse:
-    try:
-        return AccommodationService(db).soft_delete(
-            accommodation_id=accommodation_id,
-            requester_id=current_user.id,
-            is_superuser=current_user.is_superuser,
-        )
-    except AccommodationNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accommodation not found")
-    except AccommodationForbiddenError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    return AccommodationService(db).soft_delete(
+        accommodation_id=accommodation_id,
+        requester_id=current_user.id,
+        is_superuser=current_user.is_superuser,
+    )
 
 
 # ── Image management ─────────────────────────────────────────────────────────
@@ -154,22 +128,12 @@ def upload_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> AccommodationImageResponse:
-    try:
-        return AccommodationService(db).upload_image(
-            accommodation_id=accommodation_id,
-            requester_id=current_user.id,
-            is_superuser=current_user.is_superuser,
-            file=file,
-        )
-    except AccommodationNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accommodation not found")
-    except AccommodationForbiddenError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-    except InvalidImageError as e:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Unsupported image type: {e}. Allowed: JPEG, PNG, WebP",
-        )
+    return AccommodationService(db).upload_image(
+        accommodation_id=accommodation_id,
+        requester_id=current_user.id,
+        is_superuser=current_user.is_superuser,
+        file=file,
+    )
 
 
 @router.delete(
@@ -183,19 +147,12 @@ def delete_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> AccommodationImageResponse:
-    try:
-        return AccommodationService(db).delete_image(
-            accommodation_id=accommodation_id,
-            image_id=image_id,
-            requester_id=current_user.id,
-            is_superuser=current_user.is_superuser,
-        )
-    except AccommodationNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accommodation not found")
-    except AccommodationForbiddenError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-    except ImageNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+    return AccommodationService(db).delete_image(
+        accommodation_id=accommodation_id,
+        image_id=image_id,
+        requester_id=current_user.id,
+        is_superuser=current_user.is_superuser,
+    )
 
 
 @router.patch(
@@ -209,16 +166,9 @@ def set_primary_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> AccommodationImageResponse:
-    try:
-        return AccommodationService(db).set_primary_image(
-            accommodation_id=accommodation_id,
-            image_id=image_id,
-            requester_id=current_user.id,
-            is_superuser=current_user.is_superuser,
-        )
-    except AccommodationNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Accommodation not found")
-    except AccommodationForbiddenError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-    except ImageNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+    return AccommodationService(db).set_primary_image(
+        accommodation_id=accommodation_id,
+        image_id=image_id,
+        requester_id=current_user.id,
+        is_superuser=current_user.is_superuser,
+    )

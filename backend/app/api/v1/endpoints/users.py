@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_active_user, get_current_superuser
 from app.db.deps import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
-from app.services.auth import AuthService, EmailAlreadyRegisteredError
-from app.services.user import EmailAlreadyInUseError, UserNotFoundError, UserService
+from app.services.auth import AuthService
+from app.services.user import UserService
 
 router = APIRouter()
 
@@ -19,13 +19,7 @@ router = APIRouter()
     description="Crea un nuevo usuario. El email debe ser único.",
 )
 def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserResponse:
-    try:
-        return AuthService(db).register(user_in)
-    except EmailAlreadyRegisteredError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
-        )
+    return AuthService(db).register(user_in)
 
 
 @router.get(
@@ -64,13 +58,7 @@ def update_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> UserResponse:
-    try:
-        return UserService(db).update(current_user.id, user_in)
-    except EmailAlreadyInUseError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already in use",
-        )
+    return UserService(db).update(current_user.id, user_in)
 
 
 @router.get(
@@ -84,13 +72,7 @@ def get_user(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> UserResponse:
-    try:
-        return UserService(db).get_by_id(user_id)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+    return UserService(db).get_by_id(user_id)
 
 
 @router.put(
@@ -105,18 +87,7 @@ def update_user(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> UserResponse:
-    try:
-        return UserService(db).update(user_id, user_in)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    except EmailAlreadyInUseError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already in use",
-        )
+    return UserService(db).update(user_id, user_in)
 
 
 @router.delete(
@@ -130,10 +101,4 @@ def delete_user(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> UserResponse:
-    try:
-        return UserService(db).soft_delete(user_id)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+    return UserService(db).soft_delete(user_id)
