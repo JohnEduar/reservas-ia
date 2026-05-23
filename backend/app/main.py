@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.exception_handlers import register_exception_handlers
 from app.db.database import engine
 from app.schemas.health import HealthResponse
 
@@ -63,6 +64,7 @@ app.add_middleware(
 )
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 

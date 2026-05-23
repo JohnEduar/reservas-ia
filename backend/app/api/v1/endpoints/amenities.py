@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_superuser
 from app.db.deps import get_db
 from app.models.user import User
 from app.schemas.accommodation import AmenityCreate, AmenityResponse
-from app.services.accommodation import AccommodationService, AmenityAlreadyExistsError
+from app.services.accommodation import AccommodationService
 
 router = APIRouter()
 
@@ -32,10 +32,4 @@ def create_amenity(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> AmenityResponse:
-    try:
-        return AccommodationService(db).create_amenity(name=data.name, icon=data.icon)
-    except AmenityAlreadyExistsError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Amenity with this name already exists",
-        )
+    return AccommodationService(db).create_amenity(name=data.name, icon=data.icon)
