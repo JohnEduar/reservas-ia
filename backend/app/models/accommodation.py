@@ -1,9 +1,11 @@
+from datetime import date as date_type
 from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -11,6 +13,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -83,6 +86,17 @@ class Accommodation(Base):
         secondary=accommodation_amenities,
         back_populates="accommodations",
     )
+    blocked_dates: Mapped[list["AccommodationAvailability"]] = relationship(
+        "AccommodationAvailability",
+        back_populates="accommodation",
+        cascade="all, delete-orphan",
+    )
+    seasonal_prices: Mapped[list["SeasonalPrice"]] = relationship(
+        "SeasonalPrice",
+        back_populates="accommodation",
+        cascade="all, delete-orphan",
+        order_by="SeasonalPrice.start_date",
+    )
 
 
 class AccommodationImage(Base):
@@ -104,4 +118,56 @@ class AccommodationImage(Base):
 
     accommodation: Mapped["Accommodation"] = relationship(
         "Accommodation", back_populates="images"
+    )
+
+
+class AccommodationAvailability(Base):
+    """Each row represents a blocked (unavailable) date for an accommodation."""
+
+    __tablename__ = "accommodation_availability"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    accommodation_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("accommodations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    date: Mapped[date_type] = mapped_column(Date, nullable=False, index=True)
+    reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("accommodation_id", "date", name="uq_availability_acc_date"),
+    )
+
+    accommodation: Mapped["Accommodation"] = relationship(
+        "Accommodation", back_populates="blocked_dates"
+    )
+
+
+class SeasonalPrice(Base):
+    """Price override for a specific date range (e.g., peak season, holiday)."""
+
+    __tablename__ = "seasonal_prices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    accommodation_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("accommodations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    start_date: Mapped[date_type] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date_type] = mapped_column(Date, nullable=False)
+    price_per_night: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    accommodation: Mapped["Accommodation"] = relationship(
+        "Accommodation", back_populates="seasonal_prices"
     )

@@ -78,3 +78,58 @@ POST /api/v1/amenities/          → crear (superuser)
 ---
 
 *Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
+
+---
+
+## Handoff #2 — Issue #9: Motor de disponibilidad de alojamientos
+**Fecha:** 2026-05-25  
+**Rama:** `main`  
+**Commit:** pendiente  
+**Autor:** Claude Sonnet 4.6
+
+### Componentes construidos
+
+| Archivo | Tipo | Descripción |
+|---------|------|-------------|
+| `backend/app/models/accommodation.py` | Modificado | Añadidos `AccommodationAvailability` y `SeasonalPrice`; relaciones `blocked_dates` y `seasonal_prices` en `Accommodation` |
+| `backend/app/schemas/availability.py` | Nuevo | `AvailabilityBlockCreate/Response`, `AvailabilityCalendarDayResponse`, `AvailabilityCheckResponse`, `SeasonalPriceCreate/Update/Response` |
+| `backend/app/repositories/availability.py` | Nuevo | `AvailabilityRepository` (queries por rango, inclusive/exclusivo), `SeasonalPriceRepository` (solapamiento, precio por fecha) |
+| `backend/app/services/availability.py` | Nuevo | `AvailabilityService`: calendario, check, block/unblock, CRUD precios de temporada; `assert_available()` para uso futuro por Reservas |
+| `backend/app/api/v1/endpoints/availability.py` | Nuevo | 8 endpoints montados bajo `/accommodations` |
+| `backend/app/core/exception_handlers.py` | Modificado | 6 nuevas excepciones de dominio registradas |
+| `backend/app/api/v1/router.py` | Modificado | Router `availability` incluido con prefix `/accommodations` |
+| `backend/migrations/versions/20260525_d7e8f9a0b1c2_availability.py` | Nuevo | Migración Alembic: tablas `accommodation_availability` y `seasonal_prices` |
+| `backend/tests/test_availability.py` | Nuevo | 29 tests: happy path, 401, 403, 404, 409, 422 |
+
+### Decisiones arquitectónicas
+
+1. **Solo se almacenan fechas bloqueadas**: `accommodation_availability` solo guarda registros para días NO disponibles. Ausencia de fila = disponible. Más eficiente que almacenar todos los días.
+2. **Unicidad por (accommodation_id, date)**: constraint `uq_availability_acc_date` previene duplicados a nivel DB.
+3. **Rangos de temporada sin solapamiento**: `SeasonalPriceRepository.get_overlapping()` valida que no existan rangos conflictivos para el mismo alojamiento.
+4. **`check_availability` devuelve bool, no lanza excepción**: la comprobación es informativa. `assert_available()` sí lanza `AccommodationNotAvailableError` para uso interno por el futuro módulo de Reservas.
+5. **Precio por día en calendario y check**: cada día se evalúa individualmente contra `SeasonalPrice`; si hay tarifa de temporada activa ese día, se usa en lugar del base.
+6. **Límite de 365 días en calendario**: evita respuestas masivas en calendarios muy amplios.
+
+### Estado de los endpoints al cierre del handoff
+
+```
+GET  /api/v1/accommodations/{id}/availability/calendar        → calendario (público)
+GET  /api/v1/accommodations/{id}/availability/check           → verificar disponibilidad (público)
+POST /api/v1/accommodations/{id}/availability/blocked-dates   → bloquear fechas (owner/superuser)
+DELETE /api/v1/accommodations/{id}/availability/blocked-dates/{date} → desbloquear (owner/superuser)
+GET  /api/v1/accommodations/{id}/seasonal-prices              → listar precios (público)
+POST /api/v1/accommodations/{id}/seasonal-prices              → crear precio (owner/superuser)
+PUT  /api/v1/accommodations/{id}/seasonal-prices/{price_id}   → actualizar precio (owner/superuser)
+DELETE /api/v1/accommodations/{id}/seasonal-prices/{price_id} → eliminar precio (owner/superuser)
+```
+
+### Elementos pendientes al inicio del próximo contexto
+
+- [ ] **Issue #10+**: módulo de Reservas desbloqueado — `AvailabilityService.assert_available()` ya está listo para ser consumido
+- [ ] **Reservas solapadas**: la validación de solapamiento de reservas reales (vs bloqueadas) se completará en el módulo de Reservas
+- [ ] **Límite de calendario configurable**: actualmente hardcodeado en 365 días en `availability.py:_MAX_CALENDAR_DAYS`
+- [ ] **Paginación en lista de precios de temporada**: el endpoint devuelve todos los registros sin paginación
+
+---
+
+*Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*

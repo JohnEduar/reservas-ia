@@ -87,24 +87,31 @@ if [[ -f "$PROJECT_ROOT/architecture-checkpoint.md" ]]; then
   ARCH_CHECKPOINT=$(head -80 "$PROJECT_ROOT/architecture-checkpoint.md")
 fi
 
-# ── Build prompt ──────────────────────────────────────────────────────────────
+# ── Build prompt (temp file avoids heredoc shell-expansion issues) ────────────
+# printf '%s' never interprets content, so backticks/$(…) in GitHub data are safe.
 
-PROMPT=$(cat <<PROMPT
-You are implementing GitHub Issue #$ISSUE_NUMBER for the GlampBook glamping reservation platform.
+PROMPT_FILE=$(mktemp)
+trap 'rm -f "$PROMPT_FILE"' EXIT
+
+# Part 1 – static header
+cat >> "$PROMPT_FILE" <<'STATIC'
+You are implementing GitHub Issue #STATIC
+printf '%s' "$ISSUE_NUMBER" >> "$PROMPT_FILE"
+cat >> "$PROMPT_FILE" <<'STATIC'
+ for the GlampBook glamping reservation platform.
 
 ## Issue to implement
 
-**Title:** $ISSUE_TITLE
-**Labels:** $ISSUE_LABELS
+STATIC
 
-**Description:**
-$ISSUE_BODY
+# Part 2 – dynamic issue data
+printf '**Title:** %s\n' "$ISSUE_TITLE"      >> "$PROMPT_FILE"
+printf '**Labels:** %s\n\n' "$ISSUE_LABELS"  >> "$PROMPT_FILE"
+printf '**Description:**\n%s\n\n' "$ISSUE_BODY" >> "$PROMPT_FILE"
+printf '**Comments:**\n%s\n\n---\n\n' "$COMMENTS" >> "$PROMPT_FILE"
 
-**Comments:**
-$COMMENTS
-
----
-
+# Part 3 – static stack + locations
+cat >> "$PROMPT_FILE" <<'STATIC'
 ## Project context
 
 ### Stack
@@ -132,23 +139,28 @@ Services raise typed exceptions (e.g. UserNotFoundError).
 Add them to _EXCEPTION_STATUS_MAP in backend/app/core/exception_handlers.py.
 Endpoints stay clean — zero try/except blocks.
 
-### Recent handoff summary (last 100 lines of handoffs.md)
-$HANDOFFS
+STATIC
 
-### Architecture checkpoint highlights
-$ARCH_CHECKPOINT
+# Part 4 – dynamic project context
+printf '### Recent handoff summary (last 100 lines of handoffs.md)\n%s\n\n' \
+  "$HANDOFFS" >> "$PROMPT_FILE"
+printf '### Architecture checkpoint highlights\n%s\n\n---\n\n' \
+  "$ARCH_CHECKPOINT" >> "$PROMPT_FILE"
 
----
-
+# Part 5 – static task steps
+cat >> "$PROMPT_FILE" <<'STATIC'
 ## Your task
 
-Implement Issue #$ISSUE_NUMBER end-to-end following these steps in order:
+Implement Issue #STATIC
+printf '%s' "$ISSUE_NUMBER" >> "$PROMPT_FILE"
+cat >> "$PROMPT_FILE" <<'STATIC'
+ end-to-end following these steps in order:
 
 1. **Read** all existing relevant files before editing any of them.
 2. **Models** — add SQLAlchemy models to backend/app/models/ if needed.
 3. **Schemas** — add Pydantic v2 schemas (Create/Update/Response pattern).
 4. **Repository** — add repository class extending BaseRepository.
-5. **Service** — add service with typed exception classes. NO try/except in service — raise, don't catch.
+5. **Service** — add service with typed exception classes. NO try/except in service — raise, do not catch.
 6. **Endpoints** — add clean router. NO try/except. Register in backend/app/api/v1/router.py.
 7. **Exception handler** — add new exception types to _EXCEPTION_STATUS_MAP.
 8. **Migration** — create an Alembic migration with a descriptive filename. Set down_revision to the latest existing migration.
@@ -156,8 +168,7 @@ Implement Issue #$ISSUE_NUMBER end-to-end following these steps in order:
 10. **Handoff** — append a new entry to handoffs.md describing what was built.
 
 Do NOT skip any step. Do NOT commit. Do NOT start the server.
-PROMPT
-)
+STATIC
 
 # ── Run claude ────────────────────────────────────────────────────────────────
 
@@ -168,7 +179,8 @@ echo ""
 
 cd "$PROJECT_ROOT"
 
-claude --dangerously-skip-permissions -p "$PROMPT"
+# $(cat file) captures bytes as-is — shell does NOT re-interpret backticks or $() in the string
+claude --dangerously-skip-permissions -p "$(cat "$PROMPT_FILE")"
 
 echo ""
 echo "✓ ralph/once.sh finished for issue #$ISSUE_NUMBER"
