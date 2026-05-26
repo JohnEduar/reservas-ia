@@ -18,24 +18,38 @@ from app.services.availability import (
     SeasonalPriceConflictError,
     SeasonalPriceNotFoundError,
 )
+from app.services.reservation import (
+    GuestCountExceededError,
+    InvalidReservationDateError,
+    ReservationAlreadyCancelledError,
+    ReservationConflictError,
+    ReservationForbiddenError,
+    ReservationNotFoundError,
+)
 from app.services.user import EmailAlreadyInUseError, UserNotFoundError
 
 _EXCEPTION_STATUS_MAP: dict[type[Exception], tuple[int, str]] = {
-    UserNotFoundError:              (404, "User not found"),
-    EmailAlreadyInUseError:         (409, "Email already in use"),
-    EmailAlreadyRegisteredError:    (409, "Email already registered"),
-    AccommodationNotFoundError:     (404, "Accommodation not found"),
-    AccommodationForbiddenError:    (403, "Not enough permissions"),
-    ImageNotFoundError:             (404, "Image not found"),
-    InvalidImageError:              (415, "Unsupported media type"),
-    AmenityNotFoundError:           (422, "Amenity not found"),
-    AmenityAlreadyExistsError:      (409, "Amenity already exists"),
-    DateAlreadyBlockedError:        (409, "Date is already blocked"),
-    DateNotBlockedError:            (404, "Blocked date not found"),
-    AccommodationNotAvailableError: (409, "Accommodation not available for the requested dates"),
-    SeasonalPriceNotFoundError:     (404, "Seasonal price not found"),
-    SeasonalPriceConflictError:     (409, "Seasonal price range overlaps an existing one"),
-    InvalidDateRangeError:          (422, "Invalid date range"),
+    UserNotFoundError:                (404, "User not found"),
+    EmailAlreadyInUseError:           (409, "Email already in use"),
+    EmailAlreadyRegisteredError:      (409, "Email already registered"),
+    AccommodationNotFoundError:       (404, "Accommodation not found"),
+    AccommodationForbiddenError:      (403, "Not enough permissions"),
+    ImageNotFoundError:               (404, "Image not found"),
+    InvalidImageError:                (415, "Unsupported media type"),
+    AmenityNotFoundError:             (422, "Amenity not found"),
+    AmenityAlreadyExistsError:        (409, "Amenity already exists"),
+    DateAlreadyBlockedError:          (409, "Date is already blocked"),
+    DateNotBlockedError:              (404, "Blocked date not found"),
+    AccommodationNotAvailableError:   (409, "Accommodation not available for the requested dates"),
+    SeasonalPriceNotFoundError:       (404, "Seasonal price not found"),
+    SeasonalPriceConflictError:       (409, "Seasonal price range overlaps an existing one"),
+    InvalidDateRangeError:            (422, "Invalid date range"),
+    ReservationNotFoundError:         (404, "Reservation not found"),
+    ReservationForbiddenError:        (403, "Not enough permissions"),
+    ReservationConflictError:         (409, "Requested dates are not available"),
+    ReservationAlreadyCancelledError: (409, "Reservation is already cancelled"),
+    GuestCountExceededError:          (422, "Guest count exceeds accommodation capacity"),
+    InvalidReservationDateError:      (422, "check_in must be before check_out"),
 }
 
 
