@@ -133,3 +133,132 @@ DELETE /api/v1/accommodations/{id}/seasonal-prices/{price_id} → eliminar preci
 ---
 
 *Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
+
+---
+
+## Handoff #3 — Issue #10: Flujo de reservas
+**Fecha:** 2026-05-25
+**Rama:** `10-implementar-flujo-de-reservas`
+**Commit:** pendiente
+**Autor:** Claude Sonnet 4.6
+
+### Componentes construidos
+
+| Archivo | Tipo | Descripción |
+|---------|------|-------------|
+| `backend/app/models/reservation.py` | Nuevo | `Reservation` ORM model con `ReservationStatus` enum (`confirmed`/`cancelled`) |
+| `backend/app/models/__init__.py` | Modificado | Exporta `Reservation` para que SQLAlchemy incluya la tabla en `Base.metadata` |
+| `backend/app/schemas/reservation.py` | Nuevo | `ReservationCreate`, `ReservationResponse` |
+| `backend/app/repositories/reservation.py` | Nuevo | `ReservationRepository`: `get_by_guest`, `get_by_accommodation`, `get_overlapping` |
+| `backend/app/services/reservation.py` | Nuevo | `ReservationService` con 6 excepciones de dominio; lógica de negocio completa |
+| `backend/app/api/v1/endpoints/reservations.py` | Nuevo | Router `/reservations`: crear, historial propio, detalle, cancelar |
+| `backend/app/api/v1/endpoints/accommodation_reservations.py` | Nuevo | Router `/accommodations`: listar reservas por alojamiento (host view) |
+| `backend/app/core/exception_handlers.py` | Modificado | 6 nuevas excepciones de dominio registradas |
+| `backend/app/api/v1/router.py` | Modificado | Routers `reservations` y `accommodation_reservations` incluidos |
+| `backend/migrations/versions/20260525_f0a1b2c3d4e5_reservations.py` | Nuevo | Migración Alembic: tabla `reservations` |
+| `backend/tests/test_reservations.py` | Nuevo | 31 tests: happy path, 401, 403, 404, 409, 422 |
+
+### Decisiones arquitectónicas
+
+1. **Estado `confirmed` por defecto**: la reserva se crea directamente como confirmada. No existe estado `pending` — la validación de disponibilidad es síncrona y atómica.
+2. **Cancelación como transición de estado, no soft delete**: `status = "cancelled"` en lugar de `is_active = False`. El campo `status` es el dominio correcto para reservas.
+3. **Doble verificación de conflicto**: el servicio verifica tanto fechas bloqueadas manualmente (`accommodation_availability`) como reservas activas solapadas (`reservations`). La query de solapamiento excluye reservas canceladas.
+4. **Semántica de intervalo semi-abierto [check_in, check_out)**: check_out es el día de salida — no se paga esa noche. Permite reservas adyacentes sin conflicto.
+5. **Host view separado en router propio**: `accommodation_reservations.py` montado en `/accommodations` sigue el mismo patrón que `availability.py`.
+6. **Precio calculado al momento de reserva**: `total_price` se persiste para preservar el precio histórico aunque los precios de temporada cambien posteriormente.
+
+### Estado de los endpoints al cierre del handoff
+
+```
+POST /api/v1/reservations/                          → crear reserva (autenticado)
+GET  /api/v1/reservations/me                        → historial propio (autenticado)
+GET  /api/v1/reservations/{id}                      → detalle (guest / owner / superuser)
+POST /api/v1/reservations/{id}/cancel               → cancelar (guest / superuser)
+GET  /api/v1/accommodations/{id}/reservations       → vista del host (owner / superuser)
+```
+
+### Elementos pendientes al inicio del próximo contexto
+
+- [ ] **Issue #11+**: revisar backlog para identificar próximo issue desbloqueado
+- [ ] **Notificaciones**: no se envían emails/webhooks al crear o cancelar una reserva
+- [ ] **Paginación con metadatos**: los listados devuelven arrays planos sin `total`/`page`/`pages`
+- [ ] **Validación de fecha mínima**: no se impide reservar fechas pasadas (podría requerirse según regla de negocio)
+
+---
+
+*Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
+
+---
+
+## Handoff #4 — Issue #11: Dashboard de huéspedes (frontend)
+**Fecha:** 2026-05-25
+**Rama:** `10-implementar-flujo-de-reservas`
+**Commit:** pendiente
+**Autor:** Claude Sonnet 4.6
+
+### Componentes construidos
+
+| Archivo | Tipo | Descripción |
+|---------|------|-------------|
+| `frontend/package.json` | Nuevo | Dependencias: React 18, React Router 6, TanStack Query 5, Axios, Tailwind CSS 3, Vite 5 |
+| `frontend/vite.config.js` | Nuevo | Proxy `/api` → `http://localhost:8000` para desarrollo local |
+| `frontend/tailwind.config.js` | Nuevo | Paleta `primary` verde, content paths configurados |
+| `frontend/index.html` | Nuevo | Entry point HTML |
+| `frontend/src/main.jsx` | Nuevo | Root render con `QueryClientProvider` (staleTime 5 min) |
+| `frontend/src/App.jsx` | Nuevo | Router raíz con rutas protegidas y `AuthProvider` |
+| `frontend/src/lib/axios.js` | Nuevo | Instancia Axios con interceptor Bearer y redirección automática en 401 |
+| `frontend/src/api/auth.js` | Nuevo | `login()` con form-urlencoded (OAuth2PasswordRequestForm) |
+| `frontend/src/api/reservations.js` | Nuevo | CRUD wrapper para `/reservations/me`, `/{id}`, `/{id}/cancel` |
+| `frontend/src/api/users.js` | Nuevo | `me()` y `update()` para `/users/me` |
+| `frontend/src/context/AuthContext.jsx` | Nuevo | Estado global de sesión; `login`, `logout`, `refreshUser` |
+| `frontend/src/components/ProtectedRoute.jsx` | Nuevo | Guard de rutas; spinner durante carga inicial |
+| `frontend/src/components/Layout.jsx` | Nuevo | Navbar responsiva con NavLink activos y botón de salir |
+| `frontend/src/components/Spinner.jsx` | Nuevo | Spinner animado en 3 tamaños (sm/md/lg) |
+| `frontend/src/components/StatusBadge.jsx` | Nuevo | Badge `confirmed`/`cancelled` con colores semánticos |
+| `frontend/src/components/ReservationCard.jsx` | Nuevo | Tarjeta de reserva con fechas, noches, total y enlace al detalle |
+| `frontend/src/pages/LoginPage.jsx` | Nuevo | Formulario de login con manejo de errores y redirect tras autenticación |
+| `frontend/src/pages/DashboardPage.jsx` | Nuevo | Inicio: stats (activas/próximas/en curso/total) + listado de reservas activas |
+| `frontend/src/pages/ReservationsPage.jsx` | Nuevo | Historial con filtros Todas / Activas / Canceladas |
+| `frontend/src/pages/ReservationDetailPage.jsx` | Nuevo | Detalle completo + flujo de cancelación con confirmación en dos pasos |
+| `frontend/src/pages/ProfilePage.jsx` | Nuevo | Edición de nombre, email y contraseña; info de cuenta (id, estado, fecha de alta) |
+| `.gitignore` | Modificado | Añadidos `frontend/node_modules/`, `frontend/dist/`, `frontend/.env.local` |
+
+### Decisiones arquitectónicas
+
+1. **Sin backend nuevo**: todos los endpoints necesarios ya existían (Issue #10). El frontend consume `/reservations/me`, `/reservations/{id}`, `/reservations/{id}/cancel`, `/users/me`, `PUT /users/me`.
+2. **Proxy Vite**: el servidor de desarrollo redirige `/api` al backend en `localhost:8000`, eliminando la necesidad de configurar CORS extra en desarrollo.
+3. **TanStack Query como cache**: `queryKey: ['reservations', 'me']` se comparte entre Dashboard y Reservations; una cancelación invalida ambas vistas automáticamente via `invalidateQueries`.
+4. **Token en localStorage**: el interceptor de Axios adjunta el Bearer token en cada petición y redirige a `/login` en respuestas 401.
+5. **Cancelación con confirmación en dos pasos**: el botón "Cancelar reserva" primero muestra un panel de confirmación antes de ejecutar la mutación.
+6. **Solo reservas futuras cancelables**: el botón solo aparece si `status === 'confirmed'` AND `check_in > hoy`.
+
+### Rutas de la SPA
+
+```
+/login                    → LoginPage (pública)
+/dashboard                → DashboardPage (autenticado)
+/reservations             → ReservationsPage (autenticado)
+/reservations/:id         → ReservationDetailPage (autenticado)
+/profile                  → ProfilePage (autenticado)
+/                         → redirect a /dashboard
+```
+
+### Cómo iniciar el frontend
+
+```bash
+cd frontend
+npm install
+npm run dev   # http://localhost:5173
+```
+
+### Elementos pendientes al inicio del próximo contexto
+
+- [ ] **Nombre del alojamiento en tarjetas**: actualmente se muestra `Alojamiento #ID`; requeriría enriquecer `ReservationResponse` con datos del alojamiento o un endpoint adicional
+- [ ] **Registro desde el frontend**: no hay página de registro — solo login
+- [ ] **Refresh token**: el interceptor no renueva tokens expirados automáticamente
+- [ ] **Tests de frontend**: no hay tests automatizados (Vitest/Testing Library)
+- [ ] **Producción**: URL del backend hardcodeada vía proxy Vite; en producción se necesitará `VITE_API_URL`
+
+---
+
+*Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
