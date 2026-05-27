@@ -262,3 +262,57 @@ npm run dev   # http://localhost:5173
 ---
 
 *Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
+
+---
+
+## Handoff #5 — Issue #admin: Dashboard administrativo y analíticas
+**Fecha:** 2026-05-26
+**Rama:** `main`
+**Commit:** pendiente
+**Autor:** Claude Sonnet 4.6
+
+### Componentes construidos
+
+| Archivo | Tipo | Descripción |
+|---------|------|-------------|
+| `backend/app/schemas/admin.py` | Nuevo | Schemas: `KPISummary`, `OccupancyStats`, `RevenueByPeriod`, `AccommodationRevenue`, `AdminReservationResponse`, `AdminAccommodationResponse`, `ActivityReport` |
+| `backend/app/repositories/admin.py` | Nuevo | `AdminRepository`: conteos, sumas de ingresos, agrupaciones por mes/alojamiento, estadísticas de ocupación, listados con JOIN de usuario y alojamiento |
+| `backend/app/services/admin.py` | Nuevo | `AdminService`: orquesta el repositorio, construye los schemas de respuesta |
+| `backend/app/api/v1/endpoints/admin.py` | Nuevo | 7 endpoints GET todos protegidos con `get_current_superuser` |
+| `backend/app/api/v1/router.py` | Modificado | Registra `admin.router` en `/admin` |
+| `backend/migrations/versions/20260526_a1b2c3d4e5f6_admin_analytics.py` | Nuevo | Migración marcador (sin cambios de esquema); `down_revision = f0a1b2c3d4e5` |
+| `backend/tests/test_admin.py` | Nuevo | 37 tests: happy path, 401, 403, 422 por endpoint |
+
+### Endpoints implementados
+
+```
+GET /api/v1/admin/kpis                          → KPI global (usuarios, alojamientos, reservas, ingresos)
+GET /api/v1/admin/stats/occupancy               → Ocupación por alojamiento en rango de fechas
+GET /api/v1/admin/stats/revenue/period          → Ingresos agrupados por mes (filtro opcional por año)
+GET /api/v1/admin/stats/revenue/accommodation   → Ingresos y reservas por alojamiento (top N)
+GET /api/v1/admin/reservations                  → Todas las reservas con datos de huésped y alojamiento
+GET /api/v1/admin/accommodations                → Todos los alojamientos (incluye inactivos por defecto)
+GET /api/v1/admin/reports/activity              → Últimas reservas, cancelaciones y registros de usuario
+```
+
+### Decisiones arquitectónicas
+
+1. **Sin nuevas tablas**: toda la analítica se computa con consultas de agregación sobre los modelos existentes. La migración `a1b2c3d4e5f6` es un marcador sin DDL.
+2. **`AdminRepository` independiente**: no extiende `BaseRepository` porque sus consultas son analíticas (agregados, JOINs multi-tabla), no CRUD sobre una sola entidad.
+3. **Occupancy calculado en Python**: la superposición de noches con el rango dado usa `max(check_in, start)` / `min(check_out, end)`, más legible en Python que en SQL dialectal.
+4. **Ingresos basados en `created_at`**: `revenue_this_month` y `revenue_by_month` agrupan por fecha de creación de la reserva, no por `check_in`.
+5. **`AdminReservationResponse` desde dict**: los datos vienen de `execute()` con JOIN multi-tabla; el schema se construye desde el dict ensamblado en el repositorio.
+6. **`status` validado con `pattern` en Query**: acepta solo `confirmed` o `cancelled`; FastAPI devuelve 422 automáticamente para valores inválidos.
+7. **Protección uniforme**: todos los endpoints usan `get_current_superuser` → 401 sin token, 403 con token de usuario normal.
+
+### Elementos pendientes al inicio del próximo contexto
+
+- [ ] **Dashboard frontend**: no hay UI para el panel de administración; los endpoints existen pero falta la SPA
+- [ ] **Paginación con metadatos**: los listados devuelven arrays planos sin `total`/`page`/`pages`
+- [ ] **Filtros adicionales en `/admin/reservations`**: no hay filtro por rango de fechas ni por alojamiento
+- [ ] **Export de reportes**: no se puede exportar a CSV/Excel desde los endpoints de analítica
+- [ ] **Gestión de usuarios desde admin**: `PUT /users/{id}` y `DELETE /users/{id}` ya existen (superuser); no se duplicaron en `/admin`
+
+---
+
+*Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*

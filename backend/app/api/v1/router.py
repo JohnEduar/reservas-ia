@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     accommodation_reservations,
     accommodations,
+    admin,
     amenities,
     auth,
     availability,
@@ -23,3 +24,4 @@ api_router.include_router(reservations.router, prefix="/reservations", tags=["Re
 api_router.include_router(
     accommodation_reservations.router, prefix="/accommodations", tags=["Reservations"]
 )
+api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
