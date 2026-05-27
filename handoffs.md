@@ -316,3 +316,58 @@ GET /api/v1/admin/reports/activity              → Últimas reservas, cancelaci
 ---
 
 *Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
+
+---
+
+## Handoff #6 — Issue #admin: Dashboard administrativo frontend
+**Fecha:** 2026-05-26
+**Rama:** `main`
+**Autor:** Claude Sonnet 4.6
+
+### Componentes construidos
+
+| Archivo | Tipo | Descripción |
+|---------|------|-------------|
+| `frontend/src/api/admin.js` | Nuevo | Servicio API para todos los endpoints `/admin/*` y `GET /users/` |
+| `frontend/src/components/AdminRoute.jsx` | Nuevo | Guard de ruta: redirige a `/dashboard` si `user.is_superuser !== true` |
+| `frontend/src/components/AdminLayout.jsx` | Nuevo | Layout con navbar índigo separado del layout de huéspedes; links a Métricas, Usuarios, Reservas y vuelta al panel huéspedes |
+| `frontend/src/pages/admin/AdminDashboardPage.jsx` | Nuevo | KPI cards (6), tabla de ingresos por mes (año actual), actividad reciente (últimas reservas + nuevos usuarios) |
+| `frontend/src/pages/admin/AdminUsersPage.jsx` | Nuevo | Tabla de todos los usuarios: ID, nombre, email, estado, rol (Admin/Huésped), fecha de registro |
+| `frontend/src/pages/admin/AdminReservationsPage.jsx` | Nuevo | Tabla de todas las reservas con filtro por pestañas (Todas / Confirmadas / Canceladas) |
+| `frontend/src/App.jsx` | Modificado | Añadidas rutas `/admin`, `/admin/users`, `/admin/reservations` bajo `ProtectedRoute → AdminRoute → AdminLayout` |
+| `frontend/src/pages/LoginPage.jsx` | Modificado | Redirección automática: superusuarios van a `/admin`, el resto a `/dashboard` |
+
+### Rutas de la SPA (actualizadas)
+
+```
+/login                    → LoginPage (pública)
+/admin                    → AdminDashboardPage (superuser)
+/admin/users              → AdminUsersPage (superuser)
+/admin/reservations       → AdminReservationsPage (superuser)
+/dashboard                → DashboardPage (autenticado)
+/reservations             → ReservationsPage (autenticado)
+/reservations/:id         → ReservationDetailPage (autenticado)
+/profile                  → ProfilePage (autenticado)
+/                         → redirect a /dashboard
+```
+
+### Decisiones arquitectónicas
+
+1. **`AdminRoute` liviano**: no duplica la lógica de loading/auth de `ProtectedRoute`; solo verifica `user.is_superuser`. Por estar siempre anidado bajo `ProtectedRoute`, `user` está garantizado como no-nulo cuando `AdminRoute` se ejecuta.
+2. **Layout separado**: `AdminLayout` usa navbar índigo (`bg-indigo-900`) para diferenciarse visualmente del layout de huéspedes. Incluye enlace "Panel huéspedes →" para volver sin logout.
+3. **Usuarios via `GET /users/`**: la lista de usuarios usa el endpoint existente (no se duplicó en `/admin`). Solo superusuarios pueden acceder a ese endpoint.
+4. **Filtro de reservas con React Query**: el `queryKey` incluye el `statusFilter`; cambiar de pestaña invalida y recarga automáticamente sin estado local adicional.
+5. **Redirección post-login**: `login()` ya devuelve los datos del usuario; se usa `userData.is_superuser` para decidir la ruta sin una segunda petición.
+
+### Elementos pendientes al inicio del próximo contexto
+
+- [ ] **Registro desde el frontend**: no hay página de registro — solo login
+- [ ] **Refresh token**: el interceptor no renueva tokens expirados automáticamente
+- [ ] **Paginación con metadatos**: los listados devuelven arrays planos sin `total`/`page`/`pages`
+- [ ] **Filtros adicionales en reservas admin**: no hay filtro por rango de fechas ni por alojamiento
+- [ ] **Export de reportes**: no se puede exportar a CSV/Excel
+- [ ] **Tests de frontend**: no hay tests automatizados (Vitest/Testing Library)
+
+---
+
+*Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*

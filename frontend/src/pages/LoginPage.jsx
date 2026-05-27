@@ -11,15 +11,15 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to={user.is_superuser ? '/admin' : '/dashboard'} replace />
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
-      navigate('/dashboard')
+      const userData = await login(email, password)
+      navigate(userData.is_superuser ? '/admin' : '/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Credenciales incorrectas')
     } finally {
