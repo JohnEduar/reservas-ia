@@ -77,6 +77,53 @@ POST /api/v1/amenities/          → crear (superuser)
 
 ---
 
+## Handoff #2 — Issue #13
+**Fecha:** 2026-05-28  
+**Rama:** `HEAD`  
+**Autor:** Samuel Zapata
+
+### Componentes construidos
+
+#### Issue #13 — Sistema de reseñas y calificaciones
+| Archivo | Tipo | Descripción |
+|---------|------|-------------|
+| `backend/app/models/review.py` | Nuevo | Modelo `Review` con `UniqueConstraint(reviewer_id, accommodation_id)` para prevenir duplicados |
+| `backend/app/models/__init__.py` | Modificado | `Review` exportada en el registro central |
+| `backend/app/schemas/review.py` | Nuevo | `ReviewCreate` (rating 1-5, comment opcional), `ReviewUpdate`, `ReviewResponse`, `ReviewSummary` |
+| `backend/app/repositories/review.py` | Nuevo | `ReviewRepository`: `get_by_accommodation`, `get_user_review`, `get_average_rating`, `count_by_accommodation` |
+| `backend/app/services/review.py` | Nuevo | `ReviewService`: `create`, `list_by_accommodation`, `get_summary`, `delete` + excepciones tipadas |
+| `backend/app/api/v1/endpoints/reviews.py` | Nuevo | 3 endpoints: `GET /reviews/accommodations/{id}`, `POST /reviews/`, `DELETE /reviews/{id}` |
+| `backend/app/api/v1/router.py` | Modificado | Router de reseñas registrado en `/reviews` |
+| `backend/app/core/exception_handlers.py` | Modificado | Mapeadas 4 nuevas excepciones: `ReviewNotFoundError`, `ReviewForbiddenError`, `DuplicateReviewError`, `SelfReviewError` |
+| `backend/migrations/versions/20260528_c9d1e2f3a4b5_reviews.py` | Nuevo | Migración Alembic: tabla `reviews` con 3 índices y constraint único |
+| `backend/tests/test_reviews.py` | Nuevo | 16 tests: happy path, 401, 403, 404, 409, 422 |
+
+### Reglas de negocio implementadas
+
+1. **Sin auto-reseñas**: el propietario de un alojamiento no puede reseñarse a sí mismo → `SelfReviewError` (422).
+2. **Sin duplicados**: un usuario solo puede tener una reseña por alojamiento → `DuplicateReviewError` (409). Garantizado por UniqueConstraint en BD y validación en servicio.
+3. **Calificación 1-5**: validada por Pydantic (`ge=1, le=5`); fuera de rango → 422.
+4. **Borrado solo por autor o superusuario**: `ReviewForbiddenError` (403) si otro usuario intenta eliminar.
+5. **Cascade delete**: al eliminar un alojamiento, sus reseñas se eliminan (`ondelete="CASCADE"`).
+6. **Reviewer se pone a NULL** si el usuario se elimina (`ondelete="SET NULL"`).
+7. **Promedio calculado en BD**: `func.avg()` en SQLAlchemy, no en Python.
+
+### Endpoints al cierre del handoff
+
+```
+GET  /api/v1/reviews/accommodations/{id}  → listado con average_rating y total_reviews (público)
+POST /api/v1/reviews/                     → crear reseña (autenticado)
+DELETE /api/v1/reviews/{review_id}        → eliminar reseña (autor o superusuario)
+```
+
+### Elementos pendientes al inicio del próximo contexto
+
+- [ ] **Validar reserva completada**: el issue requería verificar que el reviewer haya tenido una reserva completada en el alojamiento. Bloqueado hasta que exista el módulo de reservas (booking). La lógica debe agregarse en `ReviewService.create()`.
+- [ ] **Paginación en `get_summary`**: actualmente `get_summary` carga hasta 1000 reseñas en memoria para calcular el total; separar en consultas dedicadas `count_by_accommodation` ya existe en repo.
+- [ ] **Edición de reseña**: `ReviewUpdate` schema existe pero no hay endpoint `PATCH /reviews/{id}` — puede añadirse si se requiere.
+
+---
+
 *Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
 
 ---

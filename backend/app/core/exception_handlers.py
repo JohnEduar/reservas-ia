@@ -26,6 +26,12 @@ from app.services.reservation import (
     ReservationForbiddenError,
     ReservationNotFoundError,
 )
+from app.services.review import (
+    DuplicateReviewError,
+    ReviewForbiddenError,
+    ReviewNotFoundError,
+    SelfReviewError,
+)
 from app.services.user import EmailAlreadyInUseError, UserNotFoundError
 
 _EXCEPTION_STATUS_MAP: dict[type[Exception], tuple[int, str]] = {
@@ -50,6 +56,10 @@ _EXCEPTION_STATUS_MAP: dict[type[Exception], tuple[int, str]] = {
     ReservationAlreadyCancelledError: (409, "Reservation is already cancelled"),
     GuestCountExceededError:          (422, "Guest count exceeds accommodation capacity"),
     InvalidReservationDateError:      (422, "check_in must be before check_out"),
+    ReviewNotFoundError:              (404, "Review not found"),
+    ReviewForbiddenError:             (403, "Not enough permissions"),
+    DuplicateReviewError:             (409, "You have already reviewed this accommodation"),
+    SelfReviewError:                  (422, "Owners cannot review their own accommodation"),
 }
 
 
