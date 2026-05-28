@@ -28,6 +28,7 @@ from app.services.reservation import (
 )
 from app.services.review import (
     DuplicateReviewError,
+    NoCompletedReservationError,
     ReviewForbiddenError,
     ReviewNotFoundError,
     SelfReviewError,
@@ -60,6 +61,7 @@ _EXCEPTION_STATUS_MAP: dict[type[Exception], tuple[int, str]] = {
     ReviewForbiddenError:             (403, "Not enough permissions"),
     DuplicateReviewError:             (409, "You have already reviewed this accommodation"),
     SelfReviewError:                  (422, "Owners cannot review their own accommodation"),
+    NoCompletedReservationError:      (422, "You must have a completed stay to leave a review"),
 }
 
 

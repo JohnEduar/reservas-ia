@@ -7,6 +7,7 @@ from app.models.reservation import Reservation, ReservationStatus
 from app.repositories.base import BaseRepository
 
 
+
 class ReservationRepository(BaseRepository[Reservation]):
     def __init__(self, db: Session) -> None:
         super().__init__(Reservation, db)
@@ -52,3 +53,16 @@ class ReservationRepository(BaseRepository[Reservation]):
         if exclude_id is not None:
             stmt = stmt.where(Reservation.id != exclude_id)
         return list(self.db.scalars(stmt).all())
+
+    def has_completed_reservation(self, guest_id: int, accommodation_id: int) -> bool:
+        stmt = (
+            select(Reservation)
+            .where(
+                Reservation.guest_id == guest_id,
+                Reservation.accommodation_id == accommodation_id,
+                Reservation.status == ReservationStatus.confirmed,
+                Reservation.check_out < date_type.today(),
+            )
+            .limit(1)
+        )
+        return self.db.scalars(stmt).first() is not None

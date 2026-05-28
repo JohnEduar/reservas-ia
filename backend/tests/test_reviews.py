@@ -21,6 +21,25 @@ def create_accommodation(client, headers, **overrides):
     return resp.json()
 
 
+def complete_reservation(
+    client, headers, accommodation_id: int,
+    check_in: str = "2020-01-01", check_out: str = "2020-01-05",
+) -> dict:
+    """Create a past confirmed reservation so the user qualifies to review."""
+    resp = client.post(
+        "/api/v1/reservations/",
+        json={
+            "accommodation_id": accommodation_id,
+            "check_in": check_in,
+            "check_out": check_out,
+            "guest_count": 1,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
 def create_review(client, headers, accommodation_id: int, rating: int = 5, comment: str | None = "Great place"):
     resp = client.post(
         "/api/v1/reviews/",
@@ -34,6 +53,7 @@ def create_review(client, headers, accommodation_id: int, rating: int = 5, comme
 
 def test_create_review_happy_path(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     resp = create_review(client, normal_user["headers"], acc["id"], rating=4, comment="Muy bueno")
     assert resp.status_code == 201
     data = resp.json()
@@ -45,6 +65,7 @@ def test_create_review_happy_path(client, normal_user, superuser):
 
 def test_create_review_without_comment(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     resp = create_review(client, normal_user["headers"], acc["id"], rating=3, comment=None)
     assert resp.status_code == 201
     assert resp.json()["comment"] is None
@@ -52,6 +73,7 @@ def test_create_review_without_comment(client, normal_user, superuser):
 
 def test_list_reviews_is_public(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     create_review(client, normal_user["headers"], acc["id"], rating=5)
     resp = client.get(f"/api/v1/reviews/accommodations/{acc['id']}")
     assert resp.status_code == 200
@@ -63,15 +85,17 @@ def test_list_reviews_is_public(client, normal_user, superuser):
 
 def test_average_rating_multiple_reviews(client, superuser, db):
     acc = create_accommodation(client, superuser["headers"])
-    # Create two additional users
-    user_a = register(client, "a@test.com")
+
+    register(client, "a@test.com")
     token_a = login(client, "a@test.com")
     headers_a = {"Authorization": f"Bearer {token_a}"}
 
-    user_b = register(client, "b@test.com")
+    register(client, "b@test.com")
     token_b = login(client, "b@test.com")
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
+    complete_reservation(client, headers_a, acc["id"], check_in="2020-01-01", check_out="2020-01-05")
+    complete_reservation(client, headers_b, acc["id"], check_in="2020-02-01", check_out="2020-02-05")
     create_review(client, headers_a, acc["id"], rating=4)
     create_review(client, headers_b, acc["id"], rating=2)
 
@@ -84,16 +108,17 @@ def test_average_rating_multiple_reviews(client, superuser, db):
 
 def test_delete_own_review(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     review = create_review(client, normal_user["headers"], acc["id"]).json()
     resp = client.delete(f"/api/v1/reviews/{review['id']}", headers=normal_user["headers"])
     assert resp.status_code == 200
-    # Verify removed
     summary = client.get(f"/api/v1/reviews/accommodations/{acc['id']}").json()
     assert summary["total_reviews"] == 0
 
 
 def test_superuser_can_delete_any_review(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     review = create_review(client, normal_user["headers"], acc["id"]).json()
     resp = client.delete(f"/api/v1/reviews/{review['id']}", headers=superuser["headers"])
     assert resp.status_code == 200
@@ -112,6 +137,7 @@ def test_create_review_requires_auth(client, superuser):
 
 def test_delete_review_requires_auth(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     review = create_review(client, normal_user["headers"], acc["id"]).json()
     resp = client.delete(f"/api/v1/reviews/{review['id']}")
     assert resp.status_code == 401
@@ -121,9 +147,10 @@ def test_delete_review_requires_auth(client, normal_user, superuser):
 
 def test_cannot_delete_other_users_review(client, normal_user, superuser, db):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     review = create_review(client, normal_user["headers"], acc["id"]).json()
 
-    other = register(client, "other@test.com")
+    register(client, "other@test.com")
     token = login(client, "other@test.com")
     other_headers = {"Authorization": f"Bearer {token}"}
 
@@ -147,6 +174,7 @@ def test_delete_review_not_found(client, normal_user):
 
 def test_duplicate_review_returns_409(client, normal_user, superuser):
     acc = create_accommodation(client, superuser["headers"])
+    complete_reservation(client, normal_user["headers"], acc["id"])
     create_review(client, normal_user["headers"], acc["id"], rating=5)
     resp = create_review(client, normal_user["headers"], acc["id"], rating=3)
     assert resp.status_code == 409
@@ -176,6 +204,12 @@ def test_rating_zero_returns_422(client, normal_user, superuser):
 
 def test_owner_cannot_review_own_accommodation(client, normal_user):
     acc = create_accommodation(client, normal_user["headers"])
+    resp = create_review(client, normal_user["headers"], acc["id"], rating=5)
+    assert resp.status_code == 422
+
+
+def test_no_completed_reservation_returns_422(client, normal_user, superuser):
+    acc = create_accommodation(client, superuser["headers"])
     resp = create_review(client, normal_user["headers"], acc["id"], rating=5)
     assert resp.status_code == 422
 
