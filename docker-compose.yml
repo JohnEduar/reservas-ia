@@ -24,9 +24,20 @@ services:
     env_file: ./backend/.env
     environment:
       DB_HOST: db
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
 volumes:
   mysql_data:
+  uploads_data:

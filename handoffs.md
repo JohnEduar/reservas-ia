@@ -457,3 +457,67 @@ El gap real era la falta de cobertura del flujo de tokens JWT. Se creó `backend
 - [ ] Tests de frontend (Vitest/Testing Library)
 - [ ] Test de token expirado real (requiere manipular TTL o reloj)
 - [ ] Configurar `pytest-cov` para medir cobertura por módulo
+
+---
+
+## Handoff #8 — Issue #15: Despliegue con Docker Compose
+**Fecha:** 2026-05-28  
+**Autor:** Samuel Zapata
+
+### Archivos creados / modificados
+
+| Archivo | Acción | Descripción |
+|---------|--------|-------------|
+| `backend/entrypoint.sh` | Nuevo | Corre `alembic upgrade head` y luego `exec uvicorn` |
+| `backend/Dockerfile` | Modificado | Copia `entrypoint.sh`, crea `uploads/accommodations/`, usa `ENTRYPOINT` en lugar de `CMD` |
+| `frontend/Dockerfile` | Nuevo | Build multi-stage: Node 20 Alpine para compilar Vite → nginx Alpine para servir |
+| `frontend/nginx.conf` | Nuevo | Proxy `/api` y `/uploads` a `backend:8000`; SPA fallback a `index.html` |
+| `frontend/.dockerignore` | Nuevo | Excluye `node_modules/`, `dist/`, archivos `.env.*.local` |
+| `docker-compose.yml` | Modificado | Agrega servicio `frontend` (puerto 80), volumen `uploads_data` compartido con backend |
+| `.env.example` | Nuevo | Documenta `DB_PASSWORD` y `DB_NAME` requeridos en `.env` raíz para el servicio `db` |
+
+### Arquitectura de contenedores
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  docker-compose.yml                                          │
+│                                                              │
+│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
+│  │  db      │      │  backend  │      │  frontend        │  │
+│  │ MySQL 8  │◄─────│ FastAPI   │◄─────│ nginx (React)    │  │
+│  │ :3307    │      │ :8000     │      │ :80              │  │
+│  └──────────┘      └───────────┘      └──────────────────┘  │
+│       │                  │                                   │
+│  mysql_data         uploads_data                             │
+│  (volume)           (volume compartido nginx↔backend)        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Flujo de arranque
+
+1. `db` arranca y espera healthcheck (`mysqladmin ping`) → `start_period: 30s`
+2. `backend` arranca solo cuando `db` es `healthy` → `entrypoint.sh`:
+   - `alembic upgrade head` — aplica todas las migraciones pendientes
+   - `uvicorn app.main:app` — inicia la API
+3. `frontend` arranca cuando `backend` está up → nginx sirve el build de React y proxea `/api`
+
+### Cómo levantar
+
+```bash
+# Copiar variables de entorno
+cp .env.example .env          # completar DB_PASSWORD
+cp backend/.env.example backend/.env  # completar DB_PASSWORD, JWT_SECRET_KEY
+
+# Levantar todos los servicios
+docker compose up --build -d
+
+# Ver logs
+docker compose logs -f backend
+```
+
+### Elementos pendientes
+
+- [ ] **HTTPS/TLS**: nginx no está configurado con certificado; se necesita certbot o un reverse proxy externo (Traefik, Caddy) para producción real
+- [ ] **Variables de entorno en frontend**: VITE_ vars se hornean en build time; si la URL del backend cambia, hay que reconstruir la imagen
+- [ ] **Health check de backend**: `docker-compose.yml` no define healthcheck para el servicio backend — frontend podría arrancar antes que la API esté lista
+- [ ] **Multi-worker uvicorn**: el entrypoint usa un solo worker; para producción con carga se recomienda `--workers 4` o Gunicorn como process manager
