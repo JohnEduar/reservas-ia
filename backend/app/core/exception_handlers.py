@@ -10,6 +10,12 @@ from app.services.accommodation import (
     InvalidImageError,
 )
 from app.services.auth import EmailAlreadyRegisteredError
+from app.services.review import (
+    DuplicateReviewError,
+    ReviewForbiddenError,
+    ReviewNotFoundError,
+    SelfReviewError,
+)
 from app.services.user import EmailAlreadyInUseError, UserNotFoundError
 
 _EXCEPTION_STATUS_MAP: dict[type[Exception], tuple[int, str]] = {
@@ -22,6 +28,10 @@ _EXCEPTION_STATUS_MAP: dict[type[Exception], tuple[int, str]] = {
     InvalidImageError:           (415, "Unsupported media type"),
     AmenityNotFoundError:        (422, "Amenity not found"),
     AmenityAlreadyExistsError:   (409, "Amenity already exists"),
+    ReviewNotFoundError:         (404, "Review not found"),
+    ReviewForbiddenError:        (403, "Not enough permissions"),
+    DuplicateReviewError:        (409, "You have already reviewed this accommodation"),
+    SelfReviewError:             (422, "Owners cannot review their own accommodation"),
 }
 
 
