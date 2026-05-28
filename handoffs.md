@@ -418,3 +418,42 @@ GET /api/v1/admin/reports/activity              → Últimas reservas, cancelaci
 ---
 
 *Próxima sesión: iniciar con este documento como contexto base, ignorar el historial de chat anterior.*
+
+
+---
+
+## Handoff #7 — Issue #14: Pruebas unitarias e integración al backend
+**Fecha:** 2026-05-28  
+**Autor:** Samuel Zapata
+
+### Estado de la suite al cierre del handoff
+
+| Módulo | Archivo de tests | Tests |
+|--------|-----------------|-------|
+| Autenticación (tokens) | `tests/test_auth.py` | 16 (nuevo) |
+| Usuarios | `tests/test_users.py` | 23 |
+| Alojamientos + imágenes | `tests/test_accommodations.py` | 38 |
+| Disponibilidad + precios temporada | `tests/test_availability.py` | 29 |
+| Reservas | `tests/test_reservations.py` | 31 |
+| Reseñas | `tests/test_reviews.py` | 17 |
+| Admin (analíticas) | `tests/test_admin.py` | 35 |
+| **Total** | | **191** |
+
+### Qué se agregó en este issue
+
+El gap real era la falta de cobertura del flujo de tokens JWT. Se creó `backend/tests/test_auth.py` (16 tests) cubriendo:
+- Estructura de respuesta del login (`access_token`, `token_type`, `expires_in`)
+- Token refresh happy path con `create_refresh_token`
+- Refresh con token basura, access token como refresh, usuario inactivo, usuario inexistente, body vacío → 401/422
+- Endpoint protegido: token válido, sin token, garbage, cabecera malformada, refresh token como access → 401
+
+### Infraestructura de tests (preexistente)
+
+- **`pytest.ini`**: `testpaths=tests`, `addopts=-v --tb=short`
+- **`conftest.py`**: SQLite en memoria con `StaticPool`, `PRAGMA foreign_keys=ON`, reset por test (`autouse`), fixtures `client`, `db`, `normal_user`, `superuser`, helpers `register()`, `login()`, `promote_superuser()`
+
+### Elementos pendientes
+
+- [ ] Tests de frontend (Vitest/Testing Library)
+- [ ] Test de token expirado real (requiere manipular TTL o reloj)
+- [ ] Configurar `pytest-cov` para medir cobertura por módulo
