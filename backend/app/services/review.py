@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.review import Review
 from app.repositories.accommodation import AccommodationRepository
+from app.repositories.reservation import ReservationRepository
 from app.repositories.review import ReviewRepository
 from app.schemas.review import ReviewCreate
 from app.services.accommodation import AccommodationNotFoundError
@@ -23,10 +24,15 @@ class SelfReviewError(Exception):
     pass
 
 
+class NoCompletedReservationError(Exception):
+    pass
+
+
 class ReviewService:
     def __init__(self, db: Session) -> None:
         self.repo = ReviewRepository(db)
         self.accommodation_repo = AccommodationRepository(db)
+        self.reservation_repo = ReservationRepository(db)
 
     def get_by_id(self, review_id: int) -> Review:
         review = self.repo.get(review_id)
@@ -58,6 +64,9 @@ class ReviewService:
 
         if acc.owner_id == reviewer_id:
             raise SelfReviewError()
+
+        if not self.reservation_repo.has_completed_reservation(reviewer_id, data.accommodation_id):
+            raise NoCompletedReservationError()
 
         if self.repo.get_user_review(reviewer_id, data.accommodation_id):
             raise DuplicateReviewError()
