@@ -57,7 +57,7 @@ export default defineConfig({
 
     footer: {
       message: 'Proyecto académico · Ingeniería de Software · 2026',
-      copyright: 'Samuel Zapata & John Eduar Pérez',
+      copyright: 'Samuel Zapata · John Eduar Pérez · Juan Esteban Osorno · Juan Camilo Patiño',
     },
 
     socialLinks: [

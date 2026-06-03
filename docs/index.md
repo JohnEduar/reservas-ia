@@ -55,4 +55,4 @@ GlampBook es una aplicación web full-stack desarrollada como actividad académi
 | Migraciones | Alembic |
 | Contenedores | Docker + Docker Compose |
 
-**Autores:** Samuel Zapata · John Eduar Pérez — 2026
+**Autores:** Samuel Zapata · John Eduar Pérez · Juan Esteban Osorno · Juan Camilo Patiño — 2026
