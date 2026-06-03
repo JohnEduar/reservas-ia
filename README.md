@@ -199,40 +199,39 @@ reviews            → calificaciones y comentarios por reserva
 
 ## Roadmap de Desarrollo
 
-### Fase 1 — Fundación `[En progreso]`
+### Fase 1 — Fundación `[Completada]`
 - [x] Diseño de arquitectura del sistema
 - [x] Definición de entidades y módulos
 - [x] Setup inicial del backend con FastAPI
-- [ ] Setup del frontend con React + Vite
-- [ ] Configuración de Docker y MySQL
+- [x] Setup del frontend con React + Vite
+- [x] Configuración de Docker y MySQL
 - [x] Migraciones iniciales con Alembic
 - [x] Sistema de autenticación con JWT
 
-### Fase 2 — Core de Reservas
-- [ ] CRUD de alojamientos
-- [ ] Motor de disponibilidad por fechas
-- [ ] Flujo completo de reserva
-- [ ] Listado con filtros
+### Fase 2 — Core de Reservas `[Completada]`
+- [x] CRUD de alojamientos
+- [x] Motor de disponibilidad por fechas
+- [x] Flujo completo de reserva
+- [x] Listado con filtros
 
-### Fase 3 — Panel de Usuario
-- [ ] Dashboard personal con reservas
-- [ ] Historial y detalle de reserva
-- [ ] Gestión de perfil
-- [ ] Cancelación de reservas
+### Fase 3 — Panel de Usuario `[Completada]`
+- [x] Dashboard personal con reservas
+- [x] Historial y detalle de reserva
+- [x] Gestión de perfil
+- [x] Cancelación de reservas
 
-### Fase 4 — Panel Administrativo
-- [ ] Dashboard con KPIs y estadísticas
-- [ ] CRUD de alojamientos con imágenes
-- [ ] Gestión de reservas
-- [ ] Calendario de disponibilidad
-- [ ] Listado de usuarios
+### Fase 4 — Panel Administrativo `[Completada]`
+- [x] Dashboard con KPIs y estadísticas
+- [x] CRUD de alojamientos
+- [x] Gestión de reservas
+- [x] Listado de usuarios
 
-### Fase 5 — Calidad y Producción
-- [ ] Sistema de reseñas
+### Fase 5 — Calidad y Producción `[Completada]`
+- [x] Sistema de reseñas (backend)
+- [x] Tests unitarios e integración (191 tests)
+- [x] Deploy con Docker Compose
 - [ ] Notificaciones por email
-- [ ] Tests unitarios e integración
 - [ ] Optimización y paginación
-- [ ] Deploy con Docker Compose
 
 ---
 
@@ -418,12 +417,17 @@ Claude Code actúa como **par de programación sénior**, no como reemplazo del 
 
 ---
 
-## Autor
+## Autores
 
 **Samuel Zapata**
 [lazarosamuelza45@gmail.com](mailto:lazarosamuelza45@gmail.com)
+
 **John Eduar Pérez**
 [johneduar777@gmail.com](mailto:johneduar777@gmail.com)
+
+**Juan Esteban Osorno**
+
+**Juan Camilo Patiño**
 
 
 ---
