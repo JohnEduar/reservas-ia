@@ -24,6 +24,7 @@ export default function AdminLayout() {
               <span className="text-lg font-bold text-white">GlampBook Admin</span>
               <div className="hidden sm:flex gap-1">
                 <NavLink to="/admin" end className={navClass}>Métricas</NavLink>
+                <NavLink to="/admin/accommodations" className={navClass}>Alojamientos</NavLink>
                 <NavLink to="/admin/users" className={navClass}>Usuarios</NavLink>
                 <NavLink to="/admin/reservations" className={navClass}>Reservas</NavLink>
               </div>
@@ -46,8 +47,9 @@ export default function AdminLayout() {
               </button>
             </div>
           </div>
-          <div className="sm:hidden flex gap-1 pb-3">
+          <div className="sm:hidden flex gap-1 pb-3 overflow-x-auto">
             <NavLink to="/admin" end className={navClass}>Métricas</NavLink>
+            <NavLink to="/admin/accommodations" className={navClass}>Alojamientos</NavLink>
             <NavLink to="/admin/users" className={navClass}>Usuarios</NavLink>
             <NavLink to="/admin/reservations" className={navClass}>Reservas</NavLink>
           </div>

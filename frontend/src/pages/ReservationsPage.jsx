@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { reservationsApi } from '../api/reservations'
 import ReservationCard from '../components/ReservationCard'
@@ -30,9 +31,17 @@ export default function ReservationsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Mis reservas</h1>
-        <p className="text-gray-500 mt-1">Historial completo de tus estancias</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Mis reservas</h1>
+          <p className="text-gray-500 mt-1">Historial completo de tus estancias</p>
+        </div>
+        <Link
+          to="/accommodations"
+          className="shrink-0 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          + Nueva reserva
+        </Link>
       </div>
 
       <div className="flex gap-1 mb-6 border-b border-gray-200">

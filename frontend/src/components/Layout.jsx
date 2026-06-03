@@ -24,6 +24,7 @@ export default function Layout() {
               <span className="text-xl font-bold text-primary-700">GlampBook</span>
               <div className="hidden sm:flex gap-6">
                 <NavLink to="/dashboard" className={navClass}>Inicio</NavLink>
+                <NavLink to="/accommodations" className={navClass}>Alojamientos</NavLink>
                 <NavLink to="/reservations" className={navClass}>Mis reservas</NavLink>
                 <NavLink to="/profile" className={navClass}>Perfil</NavLink>
               </div>
@@ -41,8 +42,9 @@ export default function Layout() {
             </div>
           </div>
           {/* Mobile navigation */}
-          <div className="sm:hidden flex gap-6 pb-3">
+          <div className="sm:hidden flex gap-5 pb-3 overflow-x-auto">
             <NavLink to="/dashboard" className={navClass}>Inicio</NavLink>
+            <NavLink to="/accommodations" className={navClass}>Alojamientos</NavLink>
             <NavLink to="/reservations" className={navClass}>Reservas</NavLink>
             <NavLink to="/profile" className={navClass}>Perfil</NavLink>
           </div>
